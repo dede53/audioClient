@@ -2,9 +2,11 @@
   "name": "audioclient",
   "version": "1.0.0",
   "description": "",
-  "main": "expClient.js",
+  "main": "daemon.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node daemon.js start",
+    "stop": "node daemon.js stop"
   },
   "author": "",
   "license": "ISC",
