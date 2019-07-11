@@ -1,7 +1,9 @@
 var lame            = require('lame');
 var Speaker         = require('speaker');
+var volume          = require("pcm-volume");
 var speaker         = new Speaker();
 var lameInstance    = new lame.Decoder();
+var vol             = new volume();
 var request         = require('request');
 var dgram           = require('dgram');
 var client          = dgram.createSocket({ type: "udp4", reuseAddr: true });
@@ -24,10 +26,11 @@ io.on('connection', function(socket) {
             console.log("play.restart");
             lastTitle       = data.title;
             audio           = undefined;
+            vol             = new volume();
             speaker         = new Speaker();
             lameInstance    = new lame.Decoder();
             audio           = request(data.url);
-            audio.pipe(lameInstance).pipe(speaker);
+            audio.pipe(lameInstance).pipe(vol).pipe(speaker);
         }else{
             console.log("play.continue");
             lameInstance.pipe(speaker);
@@ -37,10 +40,11 @@ io.on('connection', function(socket) {
         console.log("skipTo");
         lastTitle       = data.title;
         audio           = undefined;
+        vol             = new volume();
         speaker         = new Speaker();
         lameInstance    = new lame.Decoder();
         audio           = request(data.url);
-        audio.pipe(lameInstance).pipe(speaker);
+        audio.pipe(lameInstance).pipe(vol).pipe(speaker);
     });
     socket.on("pause", () => {
         console.log("pause");
@@ -48,17 +52,21 @@ io.on('connection', function(socket) {
     });
     socket.on("stop", () => {
         console.log("stop");
-        audio = undefined;
-        speaker = new Speaker();
-        lameInstance = new lame.Decoder();
+        audio           = undefined;
+        vol             = new volume();
+        speaker         = new Speaker();
+        lameInstance    = new lame.Decoder();
+    });
+    socket.on("volume", value => {
+        vol.setVolume(value);
     });
     socket.on('disconnect', function(reason) {
         console.log("disconnect");
-        lameInstance.unpipe(speaker);
-        audio = undefined;
-        lastTitle = undefined;
-        speaker = new Speaker();
-        lameInstance = new lame.Decoder();
+        lameInstance.unpipe(vol);
+        audio           = undefined;
+        lastTitle       = undefined;
+        speaker         = new Speaker();
+        lameInstance    = new lame.Decoder();
     });
 });
 
@@ -69,13 +77,13 @@ app.get("/player/:command", (req, res) => {
         case "play":
             if(audio == null){
                 audio = request('http://127.0.0.1:3000/');
-                audio.pipe(lameInstance).pipe(speaker);
+                audio.pipe(lameInstance).pipe(vol);
             }else{
-                lameInstance.pipe(speaker);
+                lameInstance.pipe(vol);
             }
             break;
         default:
-            lameInstance.unpipe(speaker);
+            lameInstance.unpipe(vol);
             break;
     }
     
