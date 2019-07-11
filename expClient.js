@@ -3,10 +3,17 @@ var Speaker         = require('speaker');
 var speaker         = new Speaker();
 var lameInstance    = new lame.Decoder();
 var request         = require('request');
+var client          = dgram.createSocket({ type: "udp4", reuseAddr: true });
 var express         = require("express");
 var app             = express();
 var server          = require("http").Server(app);
 var io              = require("socket.io")(server);
+var DEVMODE         = false;
+var PORT            = 41848;
+var MCAST_ADDR      = "233.255.255.255"; //same mcast address as Server
+var place           = "Livingroom";
+var dgram           = require('dgram');
+var id              = Math.random();
 var audio;
 var lastTitle         = "";
 
@@ -74,14 +81,10 @@ app.get("/player/:command", (req, res) => {
     
 });
 
-server.listen(2000);
+if(!DEVMODE){
+    server.listen(2000);
+}
 
-//Multicast Client receiving sent messages
-var PORT = 41848;
-var MCAST_ADDR = "233.255.255.255"; //same mcast address as Server
-var place = "Livingroom";
-var dgram = require('dgram');
-var client = dgram.createSocket({ type: "udp4", reuseAddr: true });
 
 client.on('listening', function () {
     var address = client.address();
@@ -95,8 +98,16 @@ client.on('message', function (message, remote) {
     message = message.toString();
     if(message == "search audioGateway"){
         var address = client.address();
+        // for development:
+        if(DEVMODE){
+            address.address += id; 
+        }
         var res = "audioGateway:" + address.address + ":" + address.port + ":" +  place;
-        client.send(res, 0, res.length, remote.port, remote.address);
+        client.send(res, PORT, MCAST_ADDR, (e) => {
+            if(e){
+                console.log(e);
+            }
+        });
     }
 });
 
