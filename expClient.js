@@ -3,6 +3,7 @@ var Speaker         = require('speaker');
 var speaker         = new Speaker();
 var lameInstance    = new lame.Decoder();
 var request         = require('request');
+var dgram           = require('dgram');
 var client          = dgram.createSocket({ type: "udp4", reuseAddr: true });
 var express         = require("express");
 var app             = express();
@@ -12,7 +13,6 @@ var DEVMODE         = false;
 var PORT            = 41848;
 var MCAST_ADDR      = "233.255.255.255"; //same mcast address as Server
 var place           = "Livingroom";
-var dgram           = require('dgram');
 var id              = Math.random();
 var audio;
 var lastTitle         = "";
