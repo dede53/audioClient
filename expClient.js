@@ -1,23 +1,28 @@
+/**************** Change this: *******************/
+var PLACE           = "Livingroom";
+var IP              = "192.168.2.81";
+/*************************************************/
+
 var lame            = require('lame');
 var Speaker         = require('speaker');
 var volume          = require("pcm-volume");
+var request         = require('request');
+var dgram           = require('dgram');
+var express         = require("express");
+var server          = require("http").Server(app);
+var io              = require("socket.io")(server);
+var client          = dgram.createSocket({ type: "udp4", reuseAddr: true });
+var app             = express();
 var speaker         = new Speaker();
 var lameInstance    = new lame.Decoder();
 var vol             = new volume();
-var request         = require('request');
-var dgram           = require('dgram');
-var client          = dgram.createSocket({ type: "udp4", reuseAddr: true });
-var express         = require("express");
-var app             = express();
-var server          = require("http").Server(app);
-var io              = require("socket.io")(server);
 var DEVMODE         = false;
 var PORT            = 41848;
+var SERVERPORT      = 41849;
 var MCAST_ADDR      = "233.255.255.255"; //same mcast address as Server
-var place           = "Livingroom";
 var id              = Math.random();
+var lastTitle       = "";
 var audio;
-var lastTitle         = "";
 
 io.on('connection', function(socket) {
     console.log("connected");
@@ -33,7 +38,7 @@ io.on('connection', function(socket) {
             audio.pipe(lameInstance).pipe(vol).pipe(speaker);
         }else{
             console.log("play.continue");
-            lameInstance.pipe(speaker);
+            lameInstance.pipe(vol);
         }
     });
     socket.on("skipTo", data => {
@@ -48,7 +53,7 @@ io.on('connection', function(socket) {
     });
     socket.on("pause", () => {
         console.log("pause");
-        lameInstance.unpipe(speaker);
+        lameInstance.unpipe(vol);
     });
     socket.on("stop", () => {
         console.log("stop");
@@ -90,7 +95,7 @@ app.get("/player/:command", (req, res) => {
 });
 
 if(!DEVMODE){
-    server.listen(2000);
+    server.listen(SERVERPORT);
 }
 
 
@@ -110,7 +115,7 @@ client.on('message', function (message, remote) {
         if(DEVMODE){
             address.address += id; 
         }
-        var res = "audioGateway:" + address.address + ":" + address.port + ":" +  place;
+        var res = "audioGateway:" + address.address + ":" + address.port + ":" +  PLACE;
         client.send(res, PORT, MCAST_ADDR, (e) => {
             if(e){
                 console.log(e);
@@ -119,4 +124,4 @@ client.on('message', function (message, remote) {
     }
 });
 
-client.bind(PORT);
+client.bind(PORT, IP);
