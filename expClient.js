@@ -1,7 +1,11 @@
 /**************** Change this: *******************/
 var PLACE           = "Livingroom";
-var IP              = "192.168.2.81";
+var IP              = "192.168.2.62";
 /*************************************************/
+
+var speakerConfig   = {
+    "device":       "hw:1,0"
+}
 
 var lame            = require('lame');
 var Speaker         = require('speaker');
@@ -30,10 +34,7 @@ io.on('connection', function(socket) {
         if(data.title != lastTitle){
             console.log("play.restart");
             lastTitle       = data.title;
-            audio           = undefined;
-            vol             = new volume();
-            speaker         = new Speaker();
-            lameInstance    = new lame.Decoder();
+            initializeAudio();
             audio           = request(data.url);
             audio.pipe(lameInstance).pipe(vol).pipe(speaker);
         }else{
@@ -44,10 +45,7 @@ io.on('connection', function(socket) {
     socket.on("skipTo", data => {
         console.log("skipTo");
         lastTitle       = data.title;
-        audio           = undefined;
-        vol             = new volume();
-        speaker         = new Speaker();
-        lameInstance    = new lame.Decoder();
+        initializeAudio();
         audio           = request(data.url);
         audio.pipe(lameInstance).pipe(vol).pipe(speaker);
     });
@@ -57,10 +55,7 @@ io.on('connection', function(socket) {
     });
     socket.on("stop", () => {
         console.log("stop");
-        audio           = undefined;
-        vol             = new volume();
-        speaker         = new Speaker();
-        lameInstance    = new lame.Decoder();
+        initializeAudio();
     });
     socket.on("volume", value => {
         vol.setVolume(value);
@@ -68,10 +63,7 @@ io.on('connection', function(socket) {
     socket.on('disconnect', function(reason) {
         console.log("disconnect");
         lameInstance.unpipe(vol);
-        audio           = undefined;
-        lastTitle       = undefined;
-        speaker         = new Speaker();
-        lameInstance    = new lame.Decoder();
+        initializeAudio();
     });
 });
 
@@ -115,7 +107,7 @@ client.on('message', function (message, remote) {
         if(DEVMODE){
             address.address += id; 
         }
-        var res = "audioGateway:" + address.address + ":" + address.port + ":" +  PLACE;
+        var res = "audioGateway:" + IP + ":" + SERVERPORT + ":" +  PLACE;
         client.send(res, PORT, MCAST_ADDR, (e) => {
             if(e){
                 console.log(e);
@@ -124,4 +116,12 @@ client.on('message', function (message, remote) {
     }
 });
 
-client.bind(PORT, IP);
+client.bind(PORT);
+
+
+function initializeAudio(){
+    audio           = undefined;
+    vol             = new volume();
+    speaker         = new Speaker(speakerConfig);
+    lameInstance    = new lame.Decoder();
+}
