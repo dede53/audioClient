@@ -1,5 +1,5 @@
 var daemon = require("daemonize2").setup({
-    main: "expClient.js",
+    main: "index.js",
     name: "audioClient",
     pidfile: "audioClient.pid"
 });
