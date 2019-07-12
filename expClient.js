@@ -1,89 +1,45 @@
-/**************** Change this: *******************/
-var PLACE           = "Livingroom";
-var IP              = "192.168.2.62";
-/*************************************************/
-
-var speakerConfig   = {
-    "device":       "hw:1,0"
-}
-
-var lame            = require('lame');
-var Speaker         = require('speaker');
-var volume          = require("pcm-volume");
-var request         = require('request');
+var settings        = require("./settings.json");
+var audioOutput     = require("./audioOutput.js");
 var dgram           = require('dgram');
 var express         = require("express");
 var server          = require("http").Server(app);
 var io              = require("socket.io")(server);
 var client          = dgram.createSocket({ type: "udp4", reuseAddr: true });
 var app             = express();
-var speaker         = new Speaker();
-var lameInstance    = new lame.Decoder();
-var vol             = new volume();
 var DEVMODE         = false;
 var PORT            = 41848;
 var SERVERPORT      = 41849;
 var MCAST_ADDR      = "233.255.255.255"; //same mcast address as Server
 var id              = Math.random();
-var lastTitle       = "";
-var audio;
+var audio           = new audioOutput(settings.speakerConfig || {});
 
 io.on('connection', function(socket) {
-    console.log("connected");
+    console.log("io.connected");
     socket.on("play", (data) => {
-        if(data.title != lastTitle){
-            console.log("play.restart");
-            lastTitle       = data.title;
-            initializeAudio();
-            audio           = request(data.url);
-            audio.pipe(lameInstance).pipe(vol).pipe(speaker);
-        }else{
-            console.log("play.continue");
-            lameInstance.pipe(vol);
-        }
+        console.log("io.on.play");
+        audio.play(data);
     });
     socket.on("skipTo", data => {
-        console.log("skipTo");
-        lastTitle       = data.title;
-        initializeAudio();
-        audio           = request(data.url);
-        audio.pipe(lameInstance).pipe(vol).pipe(speaker);
+        console.log("io.on.skipTo");
+        audio.play(data);
     });
     socket.on("pause", () => {
-        console.log("pause");
-        lameInstance.unpipe(vol);
-    });
-    socket.on("stop", () => {
-        console.log("stop");
-        initializeAudio();
+        console.log("io.on.pause");
+        audio.pause();
     });
     socket.on("volume", value => {
-        vol.setVolume(value);
+        console.log("io.on.volume");
+        audio.setVolume(value);
     });
     socket.on('disconnect', function(reason) {
-        console.log("disconnect");
-        lameInstance.unpipe(vol);
-        initializeAudio();
+        console.log("io.on.disconnect");
+        audio.pause();
     });
 });
 
 
 app.get("/player/:command", (req, res) => {
-    res.sendStatus(200);
-    switch(req.params.command){
-        case "play":
-            if(audio == null){
-                audio = request('http://127.0.0.1:3000/');
-                audio.pipe(lameInstance).pipe(vol);
-            }else{
-                lameInstance.pipe(vol);
-            }
-            break;
-        default:
-            lameInstance.unpipe(vol);
-            break;
-    }
-    
+    res.sendStatus(audio.getInfo());
 });
 
 if(!DEVMODE){
@@ -93,7 +49,7 @@ if(!DEVMODE){
 
 client.on('listening', function () {
     var address = client.address();
-    console.log('UDP Client listening on ' + address.address + ":" + address.port);
+    console.log('UDP Client listening on ' + settings.localIp + ":" + address.port);
     client.setBroadcast(true)
     client.setMulticastTTL(128); 
     client.addMembership(MCAST_ADDR);
@@ -107,7 +63,7 @@ client.on('message', function (message, remote) {
         if(DEVMODE){
             address.address += id; 
         }
-        var res = "audioGateway:" + IP + ":" + SERVERPORT + ":" +  PLACE;
+        var res = "audioGateway:" + settings.localIp + ":" + SERVERPORT + ":" +  settings.place;
         client.send(res, PORT, MCAST_ADDR, (e) => {
             if(e){
                 console.log(e);
@@ -117,11 +73,3 @@ client.on('message', function (message, remote) {
 });
 
 client.bind(PORT);
-
-
-function initializeAudio(){
-    audio           = undefined;
-    vol             = new volume();
-    speaker         = new Speaker(speakerConfig);
-    lameInstance    = new lame.Decoder();
-}
