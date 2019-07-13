@@ -15,6 +15,11 @@ In the ```speakerConfig``` you can place all you options for the speaker.
 Look here for more Informations: https://github.com/TooTallNate/node-speaker
 
 # Installation
+
+On Debian/Ubuntu we need a lib:
+```
+sudo apt-get install libasound2-dev
+```
 ```
 git clone https://github.com/dede53/audioClient
 cd audioClient
