@@ -25,11 +25,12 @@ audioOutput.prototype.play = function(info){
         console.log("audioOutput.load");
 
         if(this.speaker instanceof Speaker){
-            this.speaker.end();
-            this.speaker.close();
+            this.volume.destroy();
+            // this.speaker.end();
+            // this.speaker.close();
             this.speaker = null;
         }
-
+        this.volume         = new volume();
         this.lameInstance   = new lame.Decoder();
         request(this.info.url).pipe(this.lameInstance);
         this.lameInstance.on("format", data => {

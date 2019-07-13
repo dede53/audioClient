@@ -63,7 +63,7 @@ client.on('message', function (message, remote) {
         if(DEVMODE){
             address.address += id; 
         }
-        var res = "audioGateway:" + settings.localIp + ":" + SERVERPORT + ":" +  settings.place;
+        var res = "audioGateway:" + settings.localIp + ":" + SERVERPORT + ":" +  settings.name;
         client.send(res, PORT, MCAST_ADDR, (e) => {
             if(e){
                 console.log(e);
